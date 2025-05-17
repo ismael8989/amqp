@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - backend
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672" 
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - backend
+    environment:
+      - RABBITMQ_DEFAULT_USER=user
+      - RABBITMQ_DEFAULT_PASS=password
+
+  auth_service:
+    build: ./auth_service
+    container_name: auth_service
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./auth_service:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      - mongodb
+      - rabbitmq
+    networks:
+      - backend
+
+  task_service:
+    build: ./task_service
+    container_name: task_service
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./task_service:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      - mongodb
+      - rabbitmq
+      - auth_service
+    networks:
+      - backend
+
+volumes:
+  mongo_data:
+  rabbitmq_data:
+
+networks:
+  backend:
+    driver: bridge
